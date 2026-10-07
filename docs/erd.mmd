@@ -1,0 +1,220 @@
+erDiagram
+    USERS {
+        uuid id PK
+        string email UK
+        string password_hash
+        string role
+        string full_name
+        boolean is_active
+        datetime created_at
+    }
+
+    STUDENTS {
+        uuid id PK
+        uuid teacher_id FK
+        string full_name
+        date birth_date
+        string grade_or_course
+        string contact_info
+        string learning_level
+        text goals
+        text notes
+        string status
+        datetime created_at
+    }
+
+    SUBJECTS {
+        uuid id PK
+        string name UK
+        text description
+        boolean is_active
+    }
+
+    TOPICS {
+        uuid id PK
+        uuid subject_id FK
+        uuid parent_topic_id FK
+        string name
+        text description
+        int sort_order
+    }
+
+    LESSONS {
+        uuid id PK
+        uuid teacher_id FK
+        uuid student_id FK
+        uuid subject_id FK
+        datetime starts_at
+        int duration_minutes
+        string status
+        text teacher_notes
+        datetime created_at
+    }
+
+    LESSON_TOPICS {
+        uuid lesson_id PK, FK
+        uuid topic_id PK, FK
+    }
+
+    STUDY_PLANS {
+        uuid id PK
+        uuid owner_id FK
+        uuid subject_id FK
+        string title
+        string level
+        text goal
+        string visibility
+        string status
+    }
+
+    STUDY_PLAN_TOPICS {
+        uuid study_plan_id PK, FK
+        uuid topic_id PK, FK
+        int position
+        int planned_lessons
+        boolean checkpoint
+    }
+
+    STUDENT_PLANS {
+        uuid id PK
+        uuid student_id FK
+        uuid study_plan_id FK
+        string status
+        datetime started_at
+    }
+
+    STUDENT_PROGRESS {
+        uuid id PK
+        uuid student_id FK
+        uuid topic_id FK
+        uuid student_plan_id FK
+        string status
+        decimal mastery_percent
+        int error_count
+        datetime updated_at
+    }
+
+    MATERIALS {
+        uuid id PK
+        uuid teacher_id FK
+        uuid student_id FK
+        uuid lesson_id FK
+        uuid topic_id FK
+        string file_name
+        string storage_key
+        string mime_type
+        bigint file_size
+        datetime uploaded_at
+    }
+
+    HOMEWORK {
+        uuid id PK
+        uuid teacher_id FK
+        uuid student_id FK
+        uuid lesson_id FK
+        string title
+        text description
+        datetime due_at
+        string status
+        decimal result_percent
+    }
+
+    ASSIGNMENTS {
+        uuid id PK
+        uuid subject_id FK
+        uuid topic_id FK
+        string type
+        string difficulty
+        text statement
+        text answer_key
+        uuid author_id FK
+    }
+
+    TESTS {
+        uuid id PK
+        uuid teacher_id FK
+        uuid subject_id FK
+        string title
+        int time_limit_minutes
+        string status
+    }
+
+    TEST_QUESTIONS {
+        uuid test_id PK, FK
+        uuid assignment_id PK, FK
+        int position
+        int points
+    }
+
+    TEST_ATTEMPTS {
+        uuid id PK
+        uuid test_id FK
+        uuid student_id FK
+        int attempt_number
+        decimal score_percent
+        datetime started_at
+        datetime submitted_at
+    }
+
+    RECOMMENDATIONS {
+        uuid id PK
+        uuid student_id FK
+        uuid topic_id FK
+        string type
+        text reason
+        string status
+        datetime created_at
+    }
+
+    NOTIFICATIONS {
+        uuid id PK
+        uuid user_id FK
+        uuid lesson_id FK
+        string channel
+        string event_type
+        string status
+        datetime scheduled_at
+        datetime sent_at
+    }
+
+    USERS ||--o{ STUDENTS : manages
+    USERS ||--o{ LESSONS : creates
+    USERS ||--o{ STUDY_PLANS : owns
+    USERS ||--o{ MATERIALS : uploads
+    USERS ||--o{ HOMEWORK : assigns
+    USERS ||--o{ ASSIGNMENTS : authors
+    USERS ||--o{ TESTS : creates
+    USERS ||--o{ NOTIFICATIONS : receives
+
+    SUBJECTS ||--o{ TOPICS : contains
+    SUBJECTS ||--o{ LESSONS : used_in
+    SUBJECTS ||--o{ STUDY_PLANS : describes
+    SUBJECTS ||--o{ ASSIGNMENTS : classifies
+    SUBJECTS ||--o{ TESTS : classifies
+    TOPICS ||--o{ TOPICS : parent_of
+    TOPICS ||--o{ LESSON_TOPICS : covers
+    LESSONS ||--o{ LESSON_TOPICS : includes
+
+    STUDENTS ||--o{ LESSONS : attends
+    STUDENTS ||--o{ STUDENT_PLANS : follows
+    STUDENTS ||--o{ STUDENT_PROGRESS : has
+    STUDENTS ||--o{ MATERIALS : receives
+    STUDENTS ||--o{ HOMEWORK : receives
+    STUDENTS ||--o{ TEST_ATTEMPTS : makes
+    STUDENTS ||--o{ RECOMMENDATIONS : gets
+
+    STUDY_PLANS ||--o{ STUDY_PLAN_TOPICS : orders
+    TOPICS ||--o{ STUDY_PLAN_TOPICS : appears_in
+    STUDY_PLANS ||--o{ STUDENT_PLANS : assigned_as
+    STUDENT_PLANS ||--o{ STUDENT_PROGRESS : tracks
+    TOPICS ||--o{ STUDENT_PROGRESS : measured_for
+
+    LESSONS ||--o{ MATERIALS : references
+    TOPICS ||--o{ MATERIALS : explains
+    LESSONS ||--o{ HOMEWORK : produces
+    TOPICS ||--o{ ASSIGNMENTS : covers
+    TESTS ||--o{ TEST_QUESTIONS : contains
+    ASSIGNMENTS ||--o{ TEST_QUESTIONS : used_in
+    TESTS ||--o{ TEST_ATTEMPTS : attempted
+    LESSONS ||--o{ NOTIFICATIONS : triggers
+    TOPICS ||--o{ RECOMMENDATIONS : concerns

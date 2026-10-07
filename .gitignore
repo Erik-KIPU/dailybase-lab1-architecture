@@ -1,0 +1,24 @@
+# Local environment
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Node
+node_modules/
+dist/
+build/
+
+# Local document render outputs
+_docx_render*/
+
+# IDE and OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

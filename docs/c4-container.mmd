@@ -1,0 +1,26 @@
+flowchart LR
+    teacher[Преподаватель\nWeb browser]
+    admin[Администратор\nWeb browser]
+
+    subgraph Platform[Платформа индивидуальной траектории обучения]
+        spa[React SPA\nЛичный кабинет и аналитика]
+        api[FastAPI REST API\nАвторизация, учебный процесс, аналитика]
+        worker[Background Worker\nУведомления и фоновые задачи]
+    end
+
+    db[(PostgreSQL\nУчебные данные и история прогресса)]
+    redis[(Redis\nОчередь и временные данные)]
+    storage[(MinIO / S3\nУчебные файлы)]
+    telegram[Telegram Bot API]
+    email[SMTP / Email provider]
+
+    teacher -->|HTTPS| spa
+    admin -->|HTTPS| spa
+    spa -->|REST / JSON| api
+    api -->|SQLAlchemy| db
+    api -->|файлы| storage
+    api -->|задачи| redis
+    worker -->|получает задачи| redis
+    worker -->|читает настройки и расписание| db
+    worker -->|отправляет уведомления| telegram
+    worker -->|отправляет уведомления| email
