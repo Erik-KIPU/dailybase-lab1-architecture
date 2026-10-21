@@ -1,6 +1,6 @@
 # Платформа индивидуальной траектории обучения
 
-Результаты лабораторных работ №1 и №2 по проекту платформы для преподавателей и репетиторов.
+Результаты лабораторных работ №1, №2 и №3 по проекту платформы для преподавателей и репетиторов.
 
 Платформа помогает вести учащихся, планировать занятия, хранить учебные материалы, выдавать домашние задания, проводить тестирование и анализировать прогресс. На основании накопленных результатов система формирует рекомендации и помогает корректировать индивидуальную траекторию обучения.
 
@@ -46,3 +46,32 @@
 
 Просмотр: `python -m http.server 8080 --bind 127.0.0.1`, затем открыть
 `http://127.0.0.1:8080/docs/swagger.html`. Это сервер документации, а не backend API.
+
+## Лабораторная работа №3 — каркас FastAPI
+
+Реализованы слои API, сервиса и доменной модели, адаптер часов, конфигурация окружения и публичный GET /api/v1/health. PostgreSQL и бизнес-операции из проектного контракта пока не реализованы.
+
+Быстрый запуск из корня репозитория в PowerShell (Python 3.10+):
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+Copy-Item .env.example .env
+.\.venv\Scripts\python.exe -m backend.app
+```
+
+Копировать .env.example нужно только при первом запуске. В локальном .env настраиваются APP_NAME, APP_VERSION, APP_ENV, HTTP_HOST, HTTP_PORT.
+
+- [Health check](http://127.0.0.1:8000/api/v1/health).
+- [Swagger реализованного backend](http://127.0.0.1:8000/docs).
+- [Подробный отчёт, проверки и ответы для защиты](docs/LAB3.md).
+
+Тестирование:
+
+```powershell
+.\.venv\Scripts\python.exe -m pip install -r requirements-dev.txt
+.\.venv\Scripts\python.exe -m pytest -q
+.\.venv\Scripts\python.exe scripts/validate_openapi.py
+```
+
+GitHub Actions запускает эти проверки на push и pull request.

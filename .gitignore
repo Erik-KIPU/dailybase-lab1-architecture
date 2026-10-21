@@ -22,3 +22,12 @@ _docx_render*/
 .idea/
 .DS_Store
 Thumbs.db
+
+# Test artifacts, packaging and binaries
+.pytest_cache/
+.coverage
+htmlcov/
+*.egg-info/
+bin/
+*.exe
+*.bin

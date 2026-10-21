@@ -1,4 +1,4 @@
-"""Validate the Lab 2 contract and its documentation without a running API."""
+"""Validate the design contract and its endpoint table without a running API."""
 from pathlib import Path
 import re
 import yaml
@@ -34,7 +34,7 @@ for path, item in spec['paths'].items():
         operations.add((method.upper(), '/api/v1' + path))
         if '204' in operation['responses']:
             assert 'content' not in operation['responses']['204']
-        if path.startswith('/auth/'):
+        if path.startswith('/auth/') or path == '/health':
             assert operation['security'] == []
         else:
             assert '401' in operation['responses']

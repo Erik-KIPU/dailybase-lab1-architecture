@@ -2,9 +2,9 @@ openapi: 3.0.3
 info:
   title: Dailybase Learning Platform API
   version: 1.0.0
-  description: Лабораторная работа №2. Контракт API, сервер пока не реализован. Роли
-    teacher/admin. Ошибки валидации возвращают 400 (будущий FastAPI должен переопределить
-    стандартный обработчик 422).
+  description: 'Проектный контракт платформы. Лабораторная №2: Auth, Users, Students,
+    Lessons, Subjects. Лабораторная №3: реализован только GET /health; остальные операции
+    запланированы. Валидация будущих бизнес-запросов должна возвращать 400.'
 servers:
 - url: http://localhost:8000/api/v1
   description: Планируемый локальный backend
@@ -19,6 +19,8 @@ tags:
   description: Собственное расписание
 - name: Subjects
   description: Общий каталог; изменения только admin
+- name: Health
+  description: Реализованный liveness процесса; без проверки БД
 security:
 - bearerAuth: []
 paths:
@@ -111,13 +113,13 @@ paths:
       tags:
       - Students
       operationId: get_students
-      summary: 'Список учащихся'
+      summary: Список учащихся
       description: 'Стабильный порядок: id. Только объекты текущего преподавателя.'
       x-roles:
       - teacher
       responses:
         '200':
-          description: 'Список учащихся'
+          description: Список учащихся
           content:
             application/json:
               schema:
@@ -146,14 +148,14 @@ paths:
       tags:
       - Students
       operationId: post_students
-      summary: 'Создать учащегося'
+      summary: Создать учащегося
       description: teacher_id берётся из JWT; status=active. Клиент не может назначить
         владельца.
       x-roles:
       - teacher
       responses:
         '201':
-          description: 'Создать учащегося'
+          description: Создать учащегося
           content:
             application/json:
               schema:
@@ -188,13 +190,13 @@ paths:
       tags:
       - Students
       operationId: get_students_id
-      summary: 'Получить учащегося'
-      description: 'Получить учащегося'
+      summary: Получить учащегося
+      description: Получить учащегося
       x-roles:
       - teacher
       responses:
         '200':
-          description: 'Получить учащегося'
+          description: Получить учащегося
           content:
             application/json:
               schema:
@@ -213,14 +215,14 @@ paths:
       tags:
       - Students
       operationId: put_students_id
-      summary: 'Полностью обновить карточку учащегося'
+      summary: Полностью обновить карточку учащегося
       description: Полная замена изменяемых полей; обязательны все поля Request, nullable-поля
         можно очистить значением null. Системные поля не изменяются.
       x-roles:
       - teacher
       responses:
         '200':
-          description: 'Полностью обновить карточку учащегося'
+          description: Полностью обновить карточку учащегося
           content:
             application/json:
               schema:
@@ -247,7 +249,7 @@ paths:
       tags:
       - Students
       operationId: patch_students_id
-      summary: 'Частично обновить карточку учащегося'
+      summary: Частично обновить карточку учащегося
       description: Изменяются только переданные поля; пустой объект запрещён. Пропуск
         nullable-поля сохраняет значение, null очищает его. Архивирование не удаляет
         историю; новые занятия для archived запрещены.
@@ -255,7 +257,7 @@ paths:
       - teacher
       responses:
         '200':
-          description: 'Частично обновить карточку учащегося'
+          description: Частично обновить карточку учащегося
           content:
             application/json:
               schema:
@@ -282,7 +284,7 @@ paths:
       tags:
       - Students
       operationId: delete_students_id
-      summary: 'Удалить учащегося'
+      summary: Удалить учащегося
       description: Физическое удаление только при отсутствии связанных записей; иначе
         409. Повторное удаление возвращает 404. Для сохранения истории используйте
         PATCH status=archived.
@@ -290,7 +292,7 @@ paths:
       - teacher
       responses:
         '204':
-          description: 'Удалить учащегося'
+          description: Удалить учащегося
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -308,13 +310,13 @@ paths:
       tags:
       - Lessons
       operationId: get_lessons
-      summary: 'Список занятий'
+      summary: Список занятий
       description: 'Стабильный порядок: starts_at, id. Только объекты текущего преподавателя.'
       x-roles:
       - teacher
       responses:
         '200':
-          description: 'Список занятий'
+          description: Список занятий
           content:
             application/json:
               schema:
@@ -355,7 +357,7 @@ paths:
       tags:
       - Lessons
       operationId: post_lessons
-      summary: 'Создать занятие'
+      summary: Создать занятие
       description: teacher_id берётся из JWT; status=scheduled. Учащийся должен быть
         активен и принадлежать преподавателю; предмет активен. starts_at содержит
         смещение UTC. Пересечения полуоткрытых интервалов [start,end) с неотменёнными
@@ -364,7 +366,7 @@ paths:
       - teacher
       responses:
         '201':
-          description: 'Создать занятие'
+          description: Создать занятие
           content:
             application/json:
               schema:
@@ -399,13 +401,13 @@ paths:
       tags:
       - Lessons
       operationId: get_lessons_id
-      summary: 'Получить занятие'
-      description: 'Получить занятие'
+      summary: Получить занятие
+      description: Получить занятие
       x-roles:
       - teacher
       responses:
         '200':
-          description: 'Получить занятие'
+          description: Получить занятие
           content:
             application/json:
               schema:
@@ -424,7 +426,7 @@ paths:
       tags:
       - Lessons
       operationId: put_lessons_id
-      summary: 'Полностью обновить занятие'
+      summary: Полностью обновить занятие
       description: Полная замена изменяемых полей; обязательны все поля Request, nullable-поля
         можно очистить значением null. Системные поля не изменяются. Только для scheduled;
         иначе 409. Повторяются проверки владельца, активных ссылок и пересечений при
@@ -433,7 +435,7 @@ paths:
       - teacher
       responses:
         '200':
-          description: 'Полностью обновить занятие'
+          description: Полностью обновить занятие
           content:
             application/json:
               schema:
@@ -460,7 +462,7 @@ paths:
       tags:
       - Lessons
       operationId: patch_lessons_id
-      summary: 'Частично обновить занятие'
+      summary: Частично обновить занятие
       description: 'Изменяются только переданные поля; пустой объект запрещён. Пропуск
         nullable-поля сохраняет значение, null очищает его. Переходы scheduled → completed/cancelled/missed;
         повтор того же статуса разрешён. Завершённые состояния терминальны; перенос
@@ -470,7 +472,7 @@ paths:
       - teacher
       responses:
         '200':
-          description: 'Частично обновить занятие'
+          description: Частично обновить занятие
           content:
             application/json:
               schema:
@@ -497,7 +499,7 @@ paths:
       tags:
       - Lessons
       operationId: delete_lessons_id
-      summary: 'Удалить занятие'
+      summary: Удалить занятие
       description: Физическое удаление только scheduled занятия без связанных учебных
         записей и уведомлений; иначе 409. Для отмены с сохранением истории используйте
         PATCH status=cancelled. Повторный DELETE возвращает 404.
@@ -505,7 +507,7 @@ paths:
       - teacher
       responses:
         '204':
-          description: 'Удалить занятие'
+          description: Удалить занятие
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -523,14 +525,14 @@ paths:
       tags:
       - Subjects
       operationId: get_subjects
-      summary: 'Список предметов'
+      summary: Список предметов
       description: 'Стабильный порядок: id. Общий каталог предметов.'
       x-roles:
       - teacher
       - admin
       responses:
         '200':
-          description: 'Список предметов'
+          description: Список предметов
           content:
             application/json:
               schema:
@@ -550,13 +552,13 @@ paths:
       tags:
       - Subjects
       operationId: post_subjects
-      summary: 'Создать предмет'
+      summary: Создать предмет
       description: Создание записи.
       x-roles:
       - admin
       responses:
         '201':
-          description: 'Создать предмет'
+          description: Создать предмет
           content:
             application/json:
               schema:
@@ -591,14 +593,14 @@ paths:
       tags:
       - Subjects
       operationId: get_subjects_id
-      summary: 'Получить предмет'
-      description: 'Получить предмет'
+      summary: Получить предмет
+      description: Получить предмет
       x-roles:
       - teacher
       - admin
       responses:
         '200':
-          description: 'Получить предмет'
+          description: Получить предмет
           content:
             application/json:
               schema:
@@ -617,14 +619,14 @@ paths:
       tags:
       - Subjects
       operationId: put_subjects_id
-      summary: 'Полностью обновить предмет'
+      summary: Полностью обновить предмет
       description: Полная замена изменяемых полей; обязательны все поля Request, nullable-поля
         можно очистить значением null. Системные поля не изменяются.
       x-roles:
       - admin
       responses:
         '200':
-          description: 'Полностью обновить предмет'
+          description: Полностью обновить предмет
           content:
             application/json:
               schema:
@@ -651,14 +653,14 @@ paths:
       tags:
       - Subjects
       operationId: patch_subjects_id
-      summary: 'Частично обновить предмет'
+      summary: Частично обновить предмет
       description: Изменяются только переданные поля; пустой объект запрещён. Пропуск
         nullable-поля сохраняет значение, null очищает его.
       x-roles:
       - admin
       responses:
         '200':
-          description: 'Частично обновить предмет'
+          description: Частично обновить предмет
           content:
             application/json:
               schema:
@@ -685,7 +687,7 @@ paths:
       tags:
       - Subjects
       operationId: delete_subjects_id
-      summary: 'Удалить предмет'
+      summary: Удалить предмет
       description: Физическое удаление только при отсутствии связанных записей; иначе
         409. Повторное удаление возвращает 404. Для скрытия предмета без удаления
         используйте PATCH is_active=false.
@@ -693,7 +695,7 @@ paths:
       - admin
       responses:
         '204':
-          description: 'Удалить предмет'
+          description: Удалить предмет
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -706,6 +708,35 @@ paths:
           $ref: '#/components/responses/Conflict'
         '500':
           $ref: '#/components/responses/InternalError'
+  /health:
+    get:
+      tags:
+      - Health
+      operationId: get_health
+      summary: Проверка работоспособности процесса
+      description: Реализовано в лабораторной №3. Публичный liveness; не readiness.
+        Uptime измеряется монотонными часами от старта экземпляра приложения.
+      security: []
+      responses:
+        '200':
+          description: Приложение отвечает
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+                enum:
+                - no-store
+              description: Ответ не должен кэшироваться
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+              example:
+                status: pass
+                app_name: Dailybase Learning Platform API
+                version: 1.0.0
+                environment: development
+                uptime_seconds: 12.345
 components:
   securitySchemes:
     bearerAuth:
@@ -1274,6 +1305,34 @@ components:
         offset:
           type: integer
           minimum: 0
+    HealthResponse:
+      type: object
+      additionalProperties: false
+      required:
+      - status
+      - app_name
+      - version
+      - environment
+      - uptime_seconds
+      properties:
+        status:
+          type: string
+          enum:
+          - pass
+        app_name:
+          type: string
+        version:
+          type: string
+        environment:
+          type: string
+          enum:
+          - development
+          - test
+          - production
+        uptime_seconds:
+          type: number
+          minimum: 0
+          description: Секунды с запуска экземпляра приложения
   responses:
     BadRequest:
       description: Неверный JSON, формат или значение параметра
