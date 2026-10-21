@@ -1,0 +1,1371 @@
+openapi: 3.0.3
+info:
+  title: Dailybase Learning Platform API
+  version: 1.0.0
+  description: Лабораторная работа №2. Контракт API, сервер пока не реализован. Роли
+    teacher/admin. Ошибки валидации возвращают 400 (будущий FastAPI должен переопределить
+    стандартный обработчик 422).
+servers:
+- url: http://localhost:8000/api/v1
+  description: Планируемый локальный backend
+tags:
+- name: Auth
+  description: Публичная аутентификация
+- name: Users
+  description: Профиль
+- name: Students
+  description: Собственные учащиеся
+- name: Lessons
+  description: Собственное расписание
+- name: Subjects
+  description: Общий каталог; изменения только admin
+security:
+- bearerAuth: []
+paths:
+  /auth/register:
+    post:
+      tags:
+      - Auth
+      operationId: post_auth_register
+      summary: Регистрация преподавателя
+      description: Всегда создаёт роль teacher. Роль admin не принимается из запроса
+        и назначается вне публичной регистрации. Нормализованный email уникален.
+      x-roles:
+      - Все
+      responses:
+        '201':
+          description: Регистрация преподавателя
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalError'
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+  /auth/login:
+    post:
+      tags:
+      - Auth
+      operationId: post_auth_login
+      summary: Вход и получение JWT
+      description: Вход и получение JWT
+      x-roles:
+      - Все
+      responses:
+        '200':
+          description: Вход и получение JWT
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalError'
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+  /users/me:
+    get:
+      tags:
+      - Users
+      operationId: get_users_me
+      summary: Текущий пользователь
+      description: Текущий пользователь
+      x-roles:
+      - teacher
+      - admin
+      responses:
+        '200':
+          description: Текущий пользователь
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /students:
+    get:
+      tags:
+      - Students
+      operationId: get_students
+      summary: 'Список учащихся'
+      description: 'Стабильный порядок: id. Только объекты текущего преподавателя.'
+      x-roles:
+      - teacher
+      responses:
+        '200':
+          description: 'Список учащихся'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StudentListResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalError'
+      parameters:
+      - $ref: '#/components/parameters/Limit'
+      - $ref: '#/components/parameters/Offset'
+      - name: status
+        in: query
+        required: false
+        description: Без фильтра возвращаются оба статуса.
+        schema:
+          type: string
+          enum:
+          - active
+          - archived
+    post:
+      tags:
+      - Students
+      operationId: post_students
+      summary: 'Создать учащегося'
+      description: teacher_id берётся из JWT; status=active. Клиент не может назначить
+        владельца.
+      x-roles:
+      - teacher
+      responses:
+        '201':
+          description: 'Создать учащегося'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StudentResponse'
+          headers:
+            Location:
+              description: URI созданного ресурса
+              schema:
+                type: string
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalError'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StudentCreateRequest'
+  /students/{id}:
+    parameters:
+    - $ref: '#/components/parameters/ResourceId'
+    get:
+      tags:
+      - Students
+      operationId: get_students_id
+      summary: 'Получить учащегося'
+      description: 'Получить учащегося'
+      x-roles:
+      - teacher
+      responses:
+        '200':
+          description: 'Получить учащегося'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StudentResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    put:
+      tags:
+      - Students
+      operationId: put_students_id
+      summary: 'Полностью обновить карточку учащегося'
+      description: Полная замена изменяемых полей; обязательны все поля Request, nullable-поля
+        можно очистить значением null. Системные поля не изменяются.
+      x-roles:
+      - teacher
+      responses:
+        '200':
+          description: 'Полностью обновить карточку учащегося'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StudentResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalError'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StudentReplaceRequest'
+    patch:
+      tags:
+      - Students
+      operationId: patch_students_id
+      summary: 'Частично обновить карточку учащегося'
+      description: Изменяются только переданные поля; пустой объект запрещён. Пропуск
+        nullable-поля сохраняет значение, null очищает его. Архивирование не удаляет
+        историю; новые занятия для archived запрещены.
+      x-roles:
+      - teacher
+      responses:
+        '200':
+          description: 'Частично обновить карточку учащегося'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StudentResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalError'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StudentPatchRequest'
+    delete:
+      tags:
+      - Students
+      operationId: delete_students_id
+      summary: 'Удалить учащегося'
+      description: Физическое удаление только при отсутствии связанных записей; иначе
+        409. Повторное удаление возвращает 404. Для сохранения истории используйте
+        PATCH status=archived.
+      x-roles:
+      - teacher
+      responses:
+        '204':
+          description: 'Удалить учащегося'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /lessons:
+    get:
+      tags:
+      - Lessons
+      operationId: get_lessons
+      summary: 'Список занятий'
+      description: 'Стабильный порядок: starts_at, id. Только объекты текущего преподавателя.'
+      x-roles:
+      - teacher
+      responses:
+        '200':
+          description: 'Список занятий'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LessonListResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalError'
+      parameters:
+      - $ref: '#/components/parameters/Limit'
+      - $ref: '#/components/parameters/Offset'
+      - name: student_id
+        in: query
+        required: false
+        description: Фильтр по своему учащемуся.
+        schema:
+          type: string
+          format: uuid
+      - name: from
+        in: query
+        required: false
+        description: Начало интервала включительно.
+        schema:
+          type: string
+          format: date-time
+      - name: to
+        in: query
+        required: false
+        description: Конец интервала исключительно; должен быть позже from.
+        schema:
+          type: string
+          format: date-time
+    post:
+      tags:
+      - Lessons
+      operationId: post_lessons
+      summary: 'Создать занятие'
+      description: teacher_id берётся из JWT; status=scheduled. Учащийся должен быть
+        активен и принадлежать преподавателю; предмет активен. starts_at содержит
+        смещение UTC. Пересечения полуоткрытых интервалов [start,end) с неотменёнными
+        занятиями преподавателя дают 409. Смежные занятия разрешены.
+      x-roles:
+      - teacher
+      responses:
+        '201':
+          description: 'Создать занятие'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LessonResponse'
+          headers:
+            Location:
+              description: URI созданного ресурса
+              schema:
+                type: string
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalError'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LessonCreateRequest'
+  /lessons/{id}:
+    parameters:
+    - $ref: '#/components/parameters/ResourceId'
+    get:
+      tags:
+      - Lessons
+      operationId: get_lessons_id
+      summary: 'Получить занятие'
+      description: 'Получить занятие'
+      x-roles:
+      - teacher
+      responses:
+        '200':
+          description: 'Получить занятие'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LessonResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    put:
+      tags:
+      - Lessons
+      operationId: put_lessons_id
+      summary: 'Полностью обновить занятие'
+      description: Полная замена изменяемых полей; обязательны все поля Request, nullable-поля
+        можно очистить значением null. Системные поля не изменяются. Только для scheduled;
+        иначе 409. Повторяются проверки владельца, активных ссылок и пересечений при
+        создании.
+      x-roles:
+      - teacher
+      responses:
+        '200':
+          description: 'Полностью обновить занятие'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LessonResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalError'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LessonReplaceRequest'
+    patch:
+      tags:
+      - Lessons
+      operationId: patch_lessons_id
+      summary: 'Частично обновить занятие'
+      description: 'Изменяются только переданные поля; пустой объект запрещён. Пропуск
+        nullable-поля сохраняет значение, null очищает его. Переходы scheduled → completed/cancelled/missed;
+        повтор того же статуса разрешён. Завершённые состояния терминальны; перенос
+        и изменение остальных полей допустимы только для scheduled. Иное даёт 409.
+        Отдельного статуса moved нет: меняется starts_at. Проверки создания сохраняются.'
+      x-roles:
+      - teacher
+      responses:
+        '200':
+          description: 'Частично обновить занятие'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LessonResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalError'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LessonPatchRequest'
+    delete:
+      tags:
+      - Lessons
+      operationId: delete_lessons_id
+      summary: 'Удалить занятие'
+      description: Физическое удаление только scheduled занятия без связанных учебных
+        записей и уведомлений; иначе 409. Для отмены с сохранением истории используйте
+        PATCH status=cancelled. Повторный DELETE возвращает 404.
+      x-roles:
+      - teacher
+      responses:
+        '204':
+          description: 'Удалить занятие'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /subjects:
+    get:
+      tags:
+      - Subjects
+      operationId: get_subjects
+      summary: 'Список предметов'
+      description: 'Стабильный порядок: id. Общий каталог предметов.'
+      x-roles:
+      - teacher
+      - admin
+      responses:
+        '200':
+          description: 'Список предметов'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubjectListResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalError'
+      parameters:
+      - $ref: '#/components/parameters/Limit'
+      - $ref: '#/components/parameters/Offset'
+    post:
+      tags:
+      - Subjects
+      operationId: post_subjects
+      summary: 'Создать предмет'
+      description: Создание записи.
+      x-roles:
+      - admin
+      responses:
+        '201':
+          description: 'Создать предмет'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubjectResponse'
+          headers:
+            Location:
+              description: URI созданного ресурса
+              schema:
+                type: string
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalError'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubjectCreateRequest'
+  /subjects/{id}:
+    parameters:
+    - $ref: '#/components/parameters/ResourceId'
+    get:
+      tags:
+      - Subjects
+      operationId: get_subjects_id
+      summary: 'Получить предмет'
+      description: 'Получить предмет'
+      x-roles:
+      - teacher
+      - admin
+      responses:
+        '200':
+          description: 'Получить предмет'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubjectResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    put:
+      tags:
+      - Subjects
+      operationId: put_subjects_id
+      summary: 'Полностью обновить предмет'
+      description: Полная замена изменяемых полей; обязательны все поля Request, nullable-поля
+        можно очистить значением null. Системные поля не изменяются.
+      x-roles:
+      - admin
+      responses:
+        '200':
+          description: 'Полностью обновить предмет'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubjectResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalError'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubjectReplaceRequest'
+    patch:
+      tags:
+      - Subjects
+      operationId: patch_subjects_id
+      summary: 'Частично обновить предмет'
+      description: Изменяются только переданные поля; пустой объект запрещён. Пропуск
+        nullable-поля сохраняет значение, null очищает его.
+      x-roles:
+      - admin
+      responses:
+        '200':
+          description: 'Частично обновить предмет'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubjectResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalError'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubjectPatchRequest'
+    delete:
+      tags:
+      - Subjects
+      operationId: delete_subjects_id
+      summary: 'Удалить предмет'
+      description: Физическое удаление только при отсутствии связанных записей; иначе
+        409. Повторное удаление возвращает 404. Для скрытия предмета без удаления
+        используйте PATCH is_active=false.
+      x-roles:
+      - admin
+      responses:
+        '204':
+          description: 'Удалить предмет'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalError'
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    RegisterRequest:
+      type: object
+      additionalProperties: false
+      required:
+      - email
+      - password
+      - full_name
+      properties:
+        email:
+          type: string
+          format: email
+          maxLength: 254
+        password:
+          type: string
+          format: password
+          minLength: 12
+          maxLength: 128
+          writeOnly: true
+        full_name:
+          type: string
+          minLength: 1
+          maxLength: 200
+    LoginRequest:
+      type: object
+      additionalProperties: false
+      required:
+      - email
+      - password
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+          minLength: 1
+          writeOnly: true
+    UserResponse:
+      type: object
+      additionalProperties: false
+      required:
+      - id
+      - email
+      - full_name
+      - role
+      - is_active
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        full_name:
+          type: string
+        role:
+          type: string
+          enum:
+          - teacher
+          - admin
+        is_active:
+          type: boolean
+    TokenResponse:
+      type: object
+      additionalProperties: false
+      required:
+      - access_token
+      - token_type
+      - expires_in
+      properties:
+        access_token:
+          type: string
+          description: JWT access token
+        token_type:
+          type: string
+          enum:
+          - Bearer
+        expires_in:
+          type: integer
+          minimum: 1
+          example: 900
+    StudentCreateRequest:
+      type: object
+      additionalProperties: false
+      required:
+      - full_name
+      properties:
+        full_name:
+          type: string
+          minLength: 1
+          maxLength: 200
+          example: Тестовый учащийся
+        birth_date:
+          type: string
+          format: date
+          nullable: true
+        grade_or_course:
+          type: string
+          maxLength: 50
+          nullable: true
+        contact_info:
+          type: string
+          maxLength: 500
+          nullable: true
+        learning_level:
+          type: string
+          maxLength: 100
+          nullable: true
+        goals:
+          type: string
+          maxLength: 4000
+          nullable: true
+        notes:
+          type: string
+          maxLength: 4000
+          nullable: true
+    StudentReplaceRequest:
+      type: object
+      additionalProperties: false
+      required:
+      - full_name
+      - birth_date
+      - grade_or_course
+      - contact_info
+      - learning_level
+      - goals
+      - notes
+      properties:
+        full_name:
+          type: string
+          minLength: 1
+          maxLength: 200
+          example: Тестовый учащийся
+        birth_date:
+          type: string
+          format: date
+          nullable: true
+        grade_or_course:
+          type: string
+          maxLength: 50
+          nullable: true
+        contact_info:
+          type: string
+          maxLength: 500
+          nullable: true
+        learning_level:
+          type: string
+          maxLength: 100
+          nullable: true
+        goals:
+          type: string
+          maxLength: 4000
+          nullable: true
+        notes:
+          type: string
+          maxLength: 4000
+          nullable: true
+    StudentPatchRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        full_name:
+          type: string
+          minLength: 1
+          maxLength: 200
+          example: Тестовый учащийся
+        birth_date:
+          type: string
+          format: date
+          nullable: true
+        grade_or_course:
+          type: string
+          maxLength: 50
+          nullable: true
+        contact_info:
+          type: string
+          maxLength: 500
+          nullable: true
+        learning_level:
+          type: string
+          maxLength: 100
+          nullable: true
+        goals:
+          type: string
+          maxLength: 4000
+          nullable: true
+        notes:
+          type: string
+          maxLength: 4000
+          nullable: true
+        status:
+          type: string
+          enum:
+          - active
+          - archived
+      minProperties: 1
+    StudentResponse:
+      type: object
+      additionalProperties: false
+      required:
+      - id
+      - teacher_id
+      - full_name
+      - birth_date
+      - grade_or_course
+      - contact_info
+      - learning_level
+      - goals
+      - notes
+      - status
+      - created_at
+      properties:
+        id:
+          type: string
+          format: uuid
+        teacher_id:
+          type: string
+          format: uuid
+        full_name:
+          type: string
+          minLength: 1
+          maxLength: 200
+          example: Тестовый учащийся
+        birth_date:
+          type: string
+          format: date
+          nullable: true
+        grade_or_course:
+          type: string
+          maxLength: 50
+          nullable: true
+        contact_info:
+          type: string
+          maxLength: 500
+          nullable: true
+        learning_level:
+          type: string
+          maxLength: 100
+          nullable: true
+        goals:
+          type: string
+          maxLength: 4000
+          nullable: true
+        notes:
+          type: string
+          maxLength: 4000
+          nullable: true
+        status:
+          type: string
+          enum:
+          - active
+          - archived
+        created_at:
+          type: string
+          format: date-time
+    LessonCreateRequest:
+      type: object
+      additionalProperties: false
+      required:
+      - student_id
+      - subject_id
+      - starts_at
+      - duration_minutes
+      properties:
+        student_id:
+          type: string
+          format: uuid
+        subject_id:
+          type: string
+          format: uuid
+        starts_at:
+          type: string
+          format: date-time
+          example: '2026-11-02T15:00:00+03:00'
+        duration_minutes:
+          type: integer
+          minimum: 1
+          maximum: 480
+          example: 60
+        teacher_notes:
+          type: string
+          maxLength: 4000
+          nullable: true
+    LessonReplaceRequest:
+      type: object
+      additionalProperties: false
+      required:
+      - student_id
+      - subject_id
+      - starts_at
+      - duration_minutes
+      - teacher_notes
+      properties:
+        student_id:
+          type: string
+          format: uuid
+        subject_id:
+          type: string
+          format: uuid
+        starts_at:
+          type: string
+          format: date-time
+          example: '2026-11-02T15:00:00+03:00'
+        duration_minutes:
+          type: integer
+          minimum: 1
+          maximum: 480
+          example: 60
+        teacher_notes:
+          type: string
+          maxLength: 4000
+          nullable: true
+    LessonPatchRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        student_id:
+          type: string
+          format: uuid
+        subject_id:
+          type: string
+          format: uuid
+        starts_at:
+          type: string
+          format: date-time
+          example: '2026-11-02T15:00:00+03:00'
+        duration_minutes:
+          type: integer
+          minimum: 1
+          maximum: 480
+          example: 60
+        teacher_notes:
+          type: string
+          maxLength: 4000
+          nullable: true
+        status:
+          type: string
+          enum:
+          - scheduled
+          - completed
+          - cancelled
+          - missed
+      minProperties: 1
+    LessonResponse:
+      type: object
+      additionalProperties: false
+      required:
+      - id
+      - teacher_id
+      - student_id
+      - subject_id
+      - starts_at
+      - duration_minutes
+      - teacher_notes
+      - status
+      - created_at
+      properties:
+        id:
+          type: string
+          format: uuid
+        teacher_id:
+          type: string
+          format: uuid
+        student_id:
+          type: string
+          format: uuid
+        subject_id:
+          type: string
+          format: uuid
+        starts_at:
+          type: string
+          format: date-time
+          example: '2026-11-02T15:00:00+03:00'
+        duration_minutes:
+          type: integer
+          minimum: 1
+          maximum: 480
+          example: 60
+        teacher_notes:
+          type: string
+          maxLength: 4000
+          nullable: true
+        status:
+          type: string
+          enum:
+          - scheduled
+          - completed
+          - cancelled
+          - missed
+        created_at:
+          type: string
+          format: date-time
+    SubjectCreateRequest:
+      type: object
+      additionalProperties: false
+      required:
+      - name
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 150
+          example: Математика
+        description:
+          type: string
+          maxLength: 4000
+          nullable: true
+    SubjectReplaceRequest:
+      type: object
+      additionalProperties: false
+      required:
+      - name
+      - description
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 150
+          example: Математика
+        description:
+          type: string
+          maxLength: 4000
+          nullable: true
+    SubjectPatchRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 150
+          example: Математика
+        description:
+          type: string
+          maxLength: 4000
+          nullable: true
+        is_active:
+          type: boolean
+      minProperties: 1
+    SubjectResponse:
+      type: object
+      additionalProperties: false
+      required:
+      - id
+      - name
+      - description
+      - is_active
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          minLength: 1
+          maxLength: 150
+          example: Математика
+        description:
+          type: string
+          maxLength: 4000
+          nullable: true
+        is_active:
+          type: boolean
+    ErrorResponse:
+      type: object
+      additionalProperties: false
+      required:
+      - code
+      - message
+      - timestamp
+      properties:
+        code:
+          type: string
+          example: INVALID_INPUT
+        message:
+          type: string
+          example: Некорректное значение duration_minutes
+        timestamp:
+          type: string
+          format: date-time
+        details:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required:
+            - field
+            - message
+            properties:
+              field:
+                type: string
+              message:
+                type: string
+    StudentListResponse:
+      type: object
+      additionalProperties: false
+      required:
+      - items
+      - total
+      - limit
+      - offset
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/StudentResponse'
+        total:
+          type: integer
+          minimum: 0
+        limit:
+          type: integer
+          minimum: 1
+          maximum: 100
+        offset:
+          type: integer
+          minimum: 0
+    LessonListResponse:
+      type: object
+      additionalProperties: false
+      required:
+      - items
+      - total
+      - limit
+      - offset
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/LessonResponse'
+        total:
+          type: integer
+          minimum: 0
+        limit:
+          type: integer
+          minimum: 1
+          maximum: 100
+        offset:
+          type: integer
+          minimum: 0
+    SubjectListResponse:
+      type: object
+      additionalProperties: false
+      required:
+      - items
+      - total
+      - limit
+      - offset
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/SubjectResponse'
+        total:
+          type: integer
+          minimum: 0
+        limit:
+          type: integer
+          minimum: 1
+          maximum: 100
+        offset:
+          type: integer
+          minimum: 0
+  responses:
+    BadRequest:
+      description: Неверный JSON, формат или значение параметра
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            code: INVALID_INPUT
+            message: Неверный JSON, формат или значение параметра
+            timestamp: '2026-10-21T10:00:00Z'
+    Unauthorized:
+      description: Токен отсутствует, истёк или неверны учётные данные
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            code: UNAUTHENTICATED
+            message: Токен отсутствует, истёк или неверны учётные данные
+            timestamp: '2026-10-21T10:00:00Z'
+      headers:
+        WWW-Authenticate:
+          description: Схема аутентификации
+          schema:
+            type: string
+            example: Bearer
+    Forbidden:
+      description: Роль не разрешает операцию или аккаунт заблокирован
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            code: FORBIDDEN
+            message: Роль не разрешает операцию или аккаунт заблокирован
+            timestamp: '2026-10-21T10:00:00Z'
+    NotFound:
+      description: Ресурс не найден или не принадлежит преподавателю
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            code: NOT_FOUND
+            message: Ресурс не найден или не принадлежит преподавателю
+            timestamp: '2026-10-21T10:00:00Z'
+    Conflict:
+      description: Конфликт состояния, зависимостей или уникальности
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            code: CONFLICT
+            message: Конфликт состояния, зависимостей или уникальности
+            timestamp: '2026-10-21T10:00:00Z'
+    InternalError:
+      description: Внутренняя ошибка без раскрытия технических деталей
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            code: INTERNAL_ERROR
+            message: Внутренняя ошибка без раскрытия технических деталей
+            timestamp: '2026-10-21T10:00:00Z'
+  parameters:
+    ResourceId:
+      name: id
+      in: path
+      required: true
+      description: UUID ресурса
+      schema:
+        type: string
+        format: uuid
+    Limit:
+      name: limit
+      in: query
+      required: false
+      description: Размер страницы.
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+    Offset:
+      name: offset
+      in: query
+      required: false
+      description: Число пропущенных записей.
+      schema:
+        type: integer
+        minimum: 0
+        default: 0
